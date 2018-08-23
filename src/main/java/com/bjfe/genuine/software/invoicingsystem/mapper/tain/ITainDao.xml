@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.tain.ITainDao">
+    <!-- 软件安装维护查询条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="billstatus !=null ">
+                and fst.billstatus =#{billstatus}
+            </if>
+            <if test="completion !=null ">
+                and fst.completion =#{completion}
+            </if>
+            <if test="creationtime !=null">
+                and fst.creationtime=#{creationtime}
+            </if>
+            <if test="creator !=null">
+                and fst.creator=#{creator}
+            </if>
+            <if test="pk_org !=null">
+                and fst.pk_org =#{pk_org}
+            </if>
+        </where>
+    </sql>
+    <!--添加软件安装维护申请 -->
+    <insert id="insertTain">
+        insert into
+         fe_soft_tain
+        (pk_soft_tain,pk_deptdoc,creator,pk_org,telphone,creationtime,approver,taudittime,pk_computer,applytype,pk_newsoft,applyresult,processInstanceId)
+        values
+        (#{pk_soft_tain},#{pk_deptdoc},#{creator},#{pk_org},#{telphone},#{creationtime},#{approver},#{taudittime},#{pk_computer},#{applytype},#{pk_newsoft},#{applyresult},#{processInstanceId})
+    </insert>
+
+
+    <!--条件查询兼并分页显示 -->
+    <select id="selectTainList" resultType="TainVO">
+        select
+          fst.pk_soft_tain,fbd.name as pk_deptdoc,fbp.name as creator,fst.creator as pk_psndoc,fst.pk_org,foo.name as org_pk,fbp.telphone as telphone,fst.creationtime,
+          fc.name as computercode,fc.brand as brand,fst.pk_computer,fssi.version as version,fssi.name as soft_name,
+          fst.applytype,fst.pk_newsoft,fssi2.name as newsoftname,fssi2.version as newsoftversion,fst.applyresult,
+          fbp2.name as pk_install,fst.pk_install as install_pk,fst.billstatus,fst.completion,fst.usertime,fst.installtime,
+          fst.billstatus,fst.processInstanceId,fbp3.name as deptapprover,fst.deptcomment,fst.depttaudittime,
+          fbp4.name as internationalapprover,fst.internationaltaudittime,fst.internationalcomment
+        from
+          fe_soft_tain fst
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fst.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fst.creator
+        left join fe_bd_psndoc fbp3 on fbp3.pk_psndoc = fst.deptapprover
+        left join fe_bd_psndoc fbp4 on fbp4.pk_psndoc = fst.internationalapprover
+        left join fe_bd_psndoc fbp2  on fbp2.pk_psndoc = fst.pk_install
+        join fe_org_orgs foo on foo.pk_org=fst.pk_org
+        join fe_computer fc on fc.pk_computer = fst.pk_computer
+        join fe_sm_softinfo fssi on fc.pk_soft = fssi.pk_soft
+        left join fe_sm_softinfo fssi2 on fssi2.pk_soft = fst.pk_newsoft
+        <include refid="selectWhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+    <!-- 查询软件申请数量 -->
+    <select id="selectTainCount" resultType="int">
+        select
+          count(fst.pk_soft_tain)
+        from
+          fe_soft_tain fst
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fst.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fst.creator
+        left join fe_bd_psndoc fbp2  on fbp2.pk_psndoc = fst.pk_install
+        join fe_org_orgs foo on foo.pk_org=fst.pk_org
+        join fe_computer fc on fc.pk_computer = fst.pk_computer
+        join fe_sm_softinfo fssi on fc.pk_soft = fssi.pk_soft
+        left join fe_sm_softinfo fssi2 on fssi2.pk_soft = fst.pk_newsoft
+        <include refid="selectWhere"></include>
+    </select>
+    <!-- 修改软件安装维护申请-->
+    <update id="updateTaninByPk">
+        update
+            fe_soft_tain
+        set
+            pk_computer=#{pk_computer},
+            applytype=#{applytype},
+            pk_newsoft=#{pk_newsoft},
+            applyresult=#{applyresult}
+        where
+          pk_soft_tain = #{pk_soft_tain}
+    </update>
+    <!--软件安装维护申请确认-->
+    <update id="TainIsOK">
+        update
+          fe_soft_tain
+        set
+          completion=#{completion},
+          usertime=#{usertime},
+          installtime=#{installtime}
+        where
+          pk_soft_tain=#{pk_soft_tain}
+    </update>
+    <!--分配安装维护人 -->
+    <!--<update id="distributionTain">
+        update
+          fe_soft_tain
+        set
+          pk_install=#{install_pk}
+        where
+          pk_soft_tain = #{pk_soft_tain}
+    </update>-->
+    <!--修改软件安装维护申请表状态-->
+    <update id="updateSoftTainBillstatus">
+        update
+        fe_soft_tain
+        set
+        <if test="billstatus !=null">
+            billstatus =#{billstatus}
+        </if>
+        <if test="processInstanceId !=null">
+            ,processInstanceId =#{processInstanceId}
+        </if>
+        <if test="deptcomment !=null">
+            ,deptcomment=#{deptcomment}
+        </if>
+        <if test="deptapprover !=null">
+            ,deptapprover=#{deptapprover}
+        </if>
+        <if test="depttaudittime !=null">
+            ,depttaudittime=#{depttaudittime}
+        </if>
+        <if test="internationalcomment !=null">
+            ,internationalcomment=#{internationalcomment}
+        </if>
+        <if test="internationalapprover !=null">
+            ,internationalapprover=#{internationalapprover}
+        </if>
+        <if test="internationaltaudittime !=null">
+            ,internationaltaudittime=#{internationaltaudittime}
+        </if>
+        <if test="pk_install !=null">
+            ,pk_install=#{pk_install}
+        </if>
+        where
+        pk_soft_tain =#{pk_soft_tain}
+    </update>
+    <!--查询正在审核的申请-->
+    <select id="selectSoftTainIsApply" resultType="TainVO">
+        select
+          fst.pk_soft_tain,fbd.name as pk_deptdoc,fbp.name as creator,fst.creator as pk_psndoc,fst.pk_org,foo.name as org_pk,fbp.telphone as telphone,fst.creationtime,
+          fst.approver,fst.taudittime,fc.name as computercode,fc.brand as brand,fst.pk_computer,fssi.version as version,fssi.name as soft_name,
+          fst.applytype,fst.pk_newsoft,fssi2.name as newsoftname,fssi2.version as newsoftversion,fst.applyresult,
+          fbp2.name as pk_install,fst.pk_install as install_pk,fst.billstatus,fst.completion,fst.usertime,fst.installtime,
+          fst.billstatus,fst.processInstanceId,fbp3.name as deptapprover,fst.deptcomment,fst.depttaudittime,
+          fbp4.name as internationalapprover,fst.internationaltaudittime,fst.internationalcomment
+        from
+          fe_soft_tain fst
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fst.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fst.creator
+        left join fe_bd_psndoc fbp2  on fbp2.pk_psndoc = fst.pk_install
+        left join fe_bd_psndoc fbp3 on fbp3.pk_psndoc = fst.deptapprover
+        left join fe_bd_psndoc fbp4 on fbp4.pk_psndoc = fst.internationalapprover
+        join fe_org_orgs foo on foo.pk_org=fst.pk_org and foo.pk_org = #{pk_org}
+        join fe_computer fc on fc.pk_computer = fst.pk_computer
+        join fe_sm_softinfo fssi on fc.pk_soft = fssi.pk_soft
+        left join fe_sm_softinfo fssi2 on fssi2.pk_soft = fst.pk_newsoft
+    </select>
+</mapper>

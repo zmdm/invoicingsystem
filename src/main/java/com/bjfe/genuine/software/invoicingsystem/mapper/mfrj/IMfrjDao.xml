@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.mfrj.IMfrjDao">
+    <!--查询条件-->
+    <sql id="selectwhere">
+        <where>
+            <if test="pk_soft !=null">
+                and fsfb.pk_soft=#{pk_soft}
+            </if>
+            <if test="pk_deptdoc !=null">
+                and fsfb.pk_deptdoc=#{pk_deptdoc}
+            </if>
+        </where>
+    </sql>
+    <!-- 主子表查询 -->
+    <select id="querySoftHBByID" resultType="SoftBVO">
+        select
+          fsfb.pk_soft_free_b,fsfb.crowno,fss.name as softname,fss.code as softcode,fss.version as softversion,fss.soft_source,
+          fss.soft_vendors,fsfb.softtelphone,fbd.name,fsfb.reason,fbd.name as pk_deptdoc
+        from
+          fe_soft_free_b fsfb
+        join fe_soft_free fsf on fsf.pk_soft_free= fsfb.pk_soft_free and fsf.pk_org=#{pk_org}
+        join fe_sm_softinfo as fss on fss.pk_soft = fsfb.pk_soft
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fsfb.pk_deptdoc
+        <include refid="selectwhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+    <!--查询对应组织填表人的软件清单数量 -->
+    <select id="selectSoftBVOCount" resultType="int">
+        select
+        count(pk_soft_free_b)
+        from
+        fe_soft_free_b fsfb
+        join fe_soft_free fsf on fsf.pk_soft_free= fsfb.pk_soft_free  and pk_org=#{pk_org}
+        join fe_sm_softinfo as fss on fss.pk_soft = fsfb.pk_soft
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fsfb.pk_deptdoc
+        <include refid="selectwhere"></include>
+    </select>
+    <!--添加可使用免费软件清单主表-->
+    <insert id="insertSoftHVO">
+        insert into
+        fe_soft_free
+        (pk_soft_free,creator,pk_org,telphone,creationtime)
+        values
+        (#{pk_soft_free},#{creator},#{pk_org},#{telphone},#{creationtime})
+    </insert>
+    <!--添加可使用免费软件清单子表-->
+    <insert id="insertSoftBVO">
+        insert into
+            fe_soft_free_b
+        (pk_soft_free_b,pk_soft_free,crowno,pk_soft,softtelphone,pk_deptdoc,reason)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.pk_soft_free_b},#{item.pk_soft_free},#{item.crowno},#{item.pk_soft},#{item.softtelphone},#{item.pk_deptdoc},#{item.reason})
+        </foreach>
+    </insert>
+</mapper>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.role.IRoleDao">
+    <!-- 用户分页条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="pk_org !=null and pk_org !=''">
+                and  fsr.pk_org = #{pk_org}
+            </if>
+            <if test="pk_dept !=null and pk_dept !=''">
+            and  fbd.pk_deptdoc= #{pk_dept}
+            </if>
+            <if test="name !=null and name !=''">
+                and fsr.name like '%' #{name} '%'
+            </if>
+
+            <if test="code !=null and code !=''">
+                and fsr.code like '%' #{code} '%'
+            </if>
+            and fsr.dr = 0
+        </where>
+    </sql>
+
+    <!--添加角色信息 -->
+    <insert id="insertRole">
+        insert into
+         fe_sm_role
+        (pk_role,rolecode,rolememo,rolename,pk_org,creator,creationtime)
+        values
+        (#{pk_role},#{rolecode},#{rolememo},#{rolename},#{pk_org},#{creator},#{creationtime})
+    </insert>
+
+    <!--条件查询兼并分页显示 -->
+    <select id="selectRoleList" resultType="RoleVO">
+        select
+        fsr.pk_role,fsr.rolecode,fsr.rolememo,fsr.rolename,zmfoo.name as pk_org,fbp.name as creator,fsr.creationtime,
+        fsr.pk_org as org_pk
+        from
+        fe_sm_role fsr
+        join fe_org_orgs zmfoo on fsr.pk_org = zmfoo.pk_org
+        join fe_bd_psndoc fbp on fsr.creator = fbp.pk_psndoc
+        join fe_bd_dept fbd on fbp.pk_dept = fbd.pk_deptdoc
+        <include refid="selectWhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+
+    <!--通过编码查询角色-->
+    <select id="selectRoleCode" resultType="int">
+    select
+     count(pk_role)
+     FROM
+     fe_sm_role where rolecode=#{rolecode} and dr=0
+    </select>
+    <!-- 查询用户总数量 -->
+    <select id="selectRoleCount" resultType="int">
+        select
+        count(pk_role)
+        from
+        fe_sm_role fsr
+        <include refid="selectWhere"></include>
+    </select>
+    <!--修改角色信息 -->
+    <update id="updateRole">
+        update
+        fe_sm_role
+        set
+        rolememo=#{rolememo},
+        rolename=#{rolename},
+        pk_org=#{pk_org},
+        creationtime=#{creationtime}
+        where
+        pk_role=#{pk_role}
+    </update>
+    <!--删除角色信息 -->
+    <update id="deleteRole">
+        update
+        fe_sm_role
+        set
+        dr =1
+        <where>
+            pk_role in
+            <foreach collection="array" item="pk_role" open="(" close=")" separator=",">
+                #{pk_role}
+            </foreach>
+        </where>
+    </update>
+</mapper>

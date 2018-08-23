@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.psndoc.IPsndocDao">
+	<!-- 用户分页条件 -->
+	<sql id="selectWhere">
+		<where>
+			<if test="pk_org !=null and pk_org !=''">
+				and  fbp.pk_org = #{pk_org}
+			</if>
+			<if test="pk_dept !=null and pk_dept !=''">
+				and  fbp.pk_dept = #{pk_dept}
+			</if>
+			<if test="name !=null and name !=''">
+				and fbp.name like '%' #{name} '%'
+			</if>
+
+			<if test="code !=null and code !=''">
+				and fbp.code like '%' #{code} '%'
+			</if>
+			and fbp.dr = 0
+		</where>
+	</sql>
+	<!--添加人员信息 -->
+	<insert id="insertPsndoc">
+		insert into
+			fe_bd_psndoc
+			(pk_psndoc,code,name,sex,pk_org,pk_dept,pk_job,telphone,address,post,email,idcard,enablestate,creator,creationtime)
+		values
+			(#{pk_psndoc},#{code},#{name},#{sex},#{pk_org},#{pk_dept},#{pk_job},#{telphone},#{address},#{post},#{email},#{idcard},#{enablestate},#{creator},#{creationtime})
+	</insert>
+	<!--条件查询兼并分页显示 -->
+	<select id="selectPsndocList" resultType="PsndocVO">
+		select
+		fbp.pk_psndoc,fbp.code,fbp.name,fbp.sex,foo.name as pk_org,fbd.name as pk_dept,fbj.name as pk_job,fbp.telphone,fbp.address,fbp.post,fbp.email,fbp.idcard,fbp.enablestate,fbp.creator,fbp.creationtime,
+		fbp.pk_org as org_pk,fbp.pk_dept as dept_pk,fbp.pk_job as job_pk
+		from
+		fe_bd_psndoc fbp
+		left join fe_org_orgs foo on fbp.pk_org = foo.pk_org and foo.dr=0
+		left join fe_bd_dept fbd on fbp.pk_dept = fbd.pk_deptdoc and fbd.dr=0
+		left join fe_bd_job fbj on fbp.pk_job = fbj.pk_job and fbj.dr=0
+		<include refid="selectWhere"></include>
+		limit #{skipNumber},#{pageCount}
+	</select>
+	<!-- 查询用户总数量 -->
+	<select id="selectPsndocCount" resultType="int">
+		select
+			count(pk_psndoc)
+		from
+			fe_bd_psndoc fbp
+		left join fe_org_orgs foo on fbp.pk_org = foo.pk_org and foo.dr=0
+		left join fe_bd_dept fbd on fbp.pk_dept = fbd.pk_deptdoc and fbd.dr=0
+		left join fe_bd_job fbj on fbp.pk_job = fbj.pk_job and fbj.dr=0
+		<include refid="selectWhere"></include>
+	</select>
+	<!--通过组织查询人员数量-->
+	<select id="selectPsndocCountByPk_org" resultType="int">
+		select
+			count(pk_psndoc)
+		from
+			fe_bd_psndoc
+		where
+			pk_org = #{pk_org} and dr=0
+	</select>
+	<!--修改人员信息 -->
+	<update id="updatePsndoc">
+		update
+			fe_bd_psndoc
+		set
+			name=#{name},
+			sex=#{sex},
+			pk_org=#{pk_org},
+			code=#{code},
+			pk_dept=#{pk_dept},
+			pk_job=#{pk_job},
+			telphone=#{telphone},
+			address=#{address},
+			post=#{post},
+			email=#{email},
+			idcard=#{idcard},
+			enablestate=#{enablestate},
+			creationtime=#{creationtime}
+		where
+			pk_psndoc=#{pk_psndoc}
+	</update>
+	<!--删除人员信息 -->
+	<update id="deletePsndoc">
+		update
+			fe_bd_psndoc
+		set
+			dr =1
+		<where>
+			pk_psndoc in
+			<foreach collection="array" item="pk_psndoc" open="(" close=")" separator=",">
+				#{pk_psndoc}
+			</foreach>
+		</where>
+	</update>
+	<!--修改人员信息状态 -->
+	<update id="updatePsndocIstate">
+		update
+			fe_bd_psndoc
+		set
+			enablestate=#{enablestate}
+		<where>
+			pk_psndoc in
+			<foreach collection="pk_psndoc" item="pk_psndoc" open="(" close=")" separator=",">
+				#{pk_psndoc}
+			</foreach>
+		</where>
+	</update>
+	<!--查询所有未删除的人员信息 -->
+	<select id="selectPsndocAll" resultType="PsndocVO">
+		select
+			fbp.pk_psndoc,fbp.code,fbp.name,fbp.sex,foo.name as pk_org,fbd.name as pk_dept,fbj.name as pk_job,fbp.telphone,fbp.address,fbp.post,fbp.email,fbp.idcard,fbp.enablestate,fbp.creator,fbp.creationtime,
+			fbp.pk_org as org_pk,fbp.pk_dept as dept_pk,fbp.pk_job as job_pk
+		from
+			fe_bd_psndoc fbp
+		join fe_org_orgs foo on fbp.pk_org = foo.pk_org and foo.dr = 0
+		join fe_bd_dept fbd on fbp.pk_dept = fbd.pk_deptdoc and fbd.dr =0
+		join fe_bd_job fbj on fbp.pk_job = fbj.pk_job and fbj.dr=0
+		where
+			fbp.dr = 0
+	</select>
+	<!--通过岗位查询相关人员信息数量 -->
+	<select id="selectPsndocCountByJob" resultType="java.util.HashMap">
+		select
+			max(fbp.code) as count,fbj.code
+		from
+			fe_bd_psndoc fbp
+		join fe_bd_job fbj on fbp.pk_job = fbj.pk_job
+		where fbp.pk_job =#{pk_job}
+	</select>
+</mapper>

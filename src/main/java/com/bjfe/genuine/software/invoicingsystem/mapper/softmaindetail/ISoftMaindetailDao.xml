@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.softmaindetail.ISoftMaindetailDao">
+    <!--查询条件-->
+    <sql id="selectwhere">
+        <where>
+            <if test="pk_soft !=null">
+                and fssi.pk_soft=#{pk_soft}
+            </if>
+            <if test="pk_softtype !=null">
+                and fsst.pk_softtype=#{pk_softtype}
+            </if>
+        </where>
+    </sql>
+
+    <!--子表查询-->
+    <select id="selectSoftMaindetailBVOList" resultType="SoftMaindetailBVO">
+        select
+          fsmdb.pk_soft_maindetail_b,fsmdb.pk_soft_maindetail,fssi.code as softcode,fssi.name as softname,
+          fssi.version as softversion,fsst.name as softtype,fsmdb.permisnum,fsmdb.permis,fsmdb.permisdead
+        from
+          fe_soft_maindetail_b fsmdb
+        join fe_soft_maindetail fsmd on fsmd.pk_soft_maindetail = fsmdb.pk_soft_maindetail and fsmd.pk_org=#{pk_org}
+        join fe_sm_softinfo fssi on fssi.pk_soft = fsmdb.pk_soft
+        join fe_sm_softtype fsst on fsst.pk_softtype = fssi.pk_softtype
+        <include refid="selectwhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+
+    <!--查询子表数量-->
+    <select id="selectSoftMaindetailBVOCount" resultType="int">
+        select
+          count(pk_soft_maindetail_b)
+        from
+          fe_soft_maindetail_b fsmdb
+        join fe_soft_maindetail fsmd on fsmd.pk_soft_maindetail = fsmdb.pk_soft_maindetail and fsmd.pk_org=#{pk_org}
+        join fe_sm_softinfo fssi on fssi.pk_soft = fsmdb.pk_soft
+        join fe_sm_softtype fsst on fsst.pk_softtype = fssi.pk_softtype
+        <include refid="selectwhere"></include>
+    </select>
+
+    <!--子表明细查询查询-->
+    <select id="selectSoftMaindetailSubVOList" resultType="SoftMaindetailSubVO">
+        select
+          fsmds.pk_soft_maindetail_sub,fsmds.pk_soft_maindetail_b,fsmds.crowno,fsmds.detailtype,fc.code as computercode,
+          fc.brand as computerbrand,fbp.name as brand,fbp.name as pk_psndoc,fbd.name as pk_deptdoc,fsmds.softversion,fsmds.softdate,
+          fsmds.installnum
+        from
+          fe_soft_maindetail_sub fsmds
+        join fe_soft_maindetail_b fsmdb on fsmdb.pk_soft_maindetail_b = fsmds.pk_soft_maindetail_b
+        join fe_soft_maindetail fsmd on fsmd.pk_soft_maindetail = fsmdb.pk_soft_maindetail and fsmd.pk_org=#{pk_org}
+        join fe_computer fc on fc.pk_computer =fsmds.pk_computer
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fsmds.pk_psndoc
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fsmds.pk_deptdoc
+    </select>
+
+    <!--添加软件安装维护主表信息-->
+    <insert id="insertSoftMaindetailHVO">
+        insert into fe_soft_maindetail
+        (pk_soft_maindetail,creator,pk_org,creationtime)
+        values
+        (#{pk_soft_maindetail},#{creator},#{pk_org},#{creationtime})
+    </insert>
+
+    <!--添加软件安装维护子表信息-->
+    <insert id="insertSoftMaindetailBVO">
+        insert into fe_soft_maindetail_b
+        (pk_soft_maindetail_b,pk_soft_maindetail,pk_soft,permisnum,permis,permisdead)
+        values
+        (#{pk_soft_maindetail_b},#{pk_soft_maindetail},#{pk_soft},#{permisnum},#{permis},#{permisdead})
+    </insert>
+
+    <!--添加软件安装维护子表明细-->
+    <insert id="insertSoftMaindetailSub">
+        insert into fe_soft_maindetail_sub
+        (pk_soft_maindetail_sub,pk_soft_maindetail_b,crowno,detailtype,pk_computer,pk_psndoc,pk_deptdoc,softversion,softdate,installnum)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.pk_soft_maindetail_sub},#{item.pk_soft_maindetail_b},#{item.crowno},#{item.detailtype},#{item.pk_computer},#{item.pk_psndoc},#{item.pk_deptdoc},#{item.softversion},#{item.softdate},#{item.installnum});
+        </foreach>
+    </insert>
+    <!--通过组织查询软件安装维护子表-->
+    <select id="selectSoftMaindetailBVOByPk_orgAndCreator" resultType="SoftMaindetailBVO">
+        select
+          fsmb.pk_soft_maindetail_b,fsmb.pk_soft_maindetail,fsmb.pk_soft,fsmb.permisnum,fsmb.permis,fsmb.permisdead
+        from
+          fe_soft_maindetail_b fsmb
+        join fe_soft_maindetail fsm on fsm.pk_soft_maindetail = fsmb.pk_soft_maindetail_b and fsm.creator =#{creator} and fsm.pk_org #{pk_org}
+        where
+          fsmb.pk_soft =#{pk_soft}
+    </select>
+    <!--通过通过子表查询明细表数量-->
+    <select id="selectSoftMaindetailSubCountBySoftMaindetailBVO" resultType="int">
+        select
+          count(pk_soft_maindetail_sub)+1
+        from
+          fe_soft_maindetail_sub
+        where
+          pk_soft_maindetail_b =#{str}
+    </select>
+</mapper>

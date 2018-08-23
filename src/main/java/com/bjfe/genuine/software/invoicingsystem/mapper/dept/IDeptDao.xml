@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.dept.IDeptDao">
+    <!-- 用户分页条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="pk_org !=null and pk_org !=''">
+                and  fbd.pk_org = #{pk_org}
+            </if>
+
+            <if test="code !=null and code !=''">
+                and fbd.code like '%' #{code} '%'
+            </if>
+            and fbd.dr = 0
+        </where>
+    </sql>
+    <!--添加部门 -->
+    <insert id="insertDept">
+        insert into
+        fe_bd_dept
+        (pk_org,code,name,pk_deptdoc,creator,creationtime)
+        values
+        (#{pk_org},#{code},#{name},#{pk_deptdoc},#{creator},#{creationtime})
+    </insert>
+    <!--查询所有部门-->
+    <select id="selectDeptList" resultType="DeptVO">
+        select
+        foo.name as pk_org,fbd.code,fbd.name,fbd.pk_deptdoc,fbd.creator,fbd.creationtime,foo.pk_org as org_pk
+        from
+          fe_bd_dept fbd
+        join fe_org_orgs foo on foo.pk_org = fbd.pk_org and foo.dr=0
+        where
+          fbd.dr=0
+    </select>
+
+    <!--条件查询兼分页显示部门-->
+    <select id="selectDeptPage" resultType="DeptVO">
+        select
+        foo.name as pk_org,fbd.code,fbd.name,fbd.pk_deptdoc,fbd.creator,fbd.creationtime,foo.pk_org as org_pk
+        from
+        fe_bd_dept fbd
+        join fe_org_orgs foo on foo.pk_org = fbd.pk_org and foo.dr=0
+        <include refid="selectWhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+
+    <!-- 查询用户总数量 -->
+    <select id="selectDeptCount" resultType="int">
+        select
+        count(pk_deptdoc)
+        from
+        fe_bd_dept fbd
+        join fe_org_orgs foo on foo.pk_org = fbd.pk_org and foo.dr=0
+        <include refid="selectWhere"></include>
+    </select>
+
+    <!--修改部门 -->
+    <update id="updateDept">
+        update
+        fe_bd_dept
+        set
+        name=#{name},
+        code =#{code},
+        pk_org=#{pk_org},
+        creationtime=#{creationtime}
+        where
+        pk_deptdoc=#{pk_deptdoc}
+    </update>
+    <!--删除部门 -->
+    <update id="deleteDepts">
+        update
+        fe_bd_dept
+        set
+        dr =1
+        <where>
+            pk_deptdoc in
+            <foreach collection="array" item="pk_deptdoc" open="(" close=")" separator=",">
+                #{pk_deptdoc}
+            </foreach>
+
+
+        </where>
+    </update>
+    <!--通过相关组织下的部门数量 -->
+    <select id="selectDeptByOrgCount" resultType="java.util.HashMap">
+        select
+          max(fbd.code) as count,foo.code
+        from
+          fe_bd_dept fbd
+        join fe_org_orgs foo on foo.pk_org = fbd.pk_org
+        where
+          fbd.pk_org=#{pk_org}
+    </select>
+</mapper>

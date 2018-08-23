@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.software.ISoftTypeDao">
+    <!-- 软件类型查询条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="name !=null and name !=''">
+                and name like '%' #{name} '%'
+            </if>
+
+            <if test="code !=null and code !=''">
+                and code like '%' #{code} '%'
+            </if>
+            and dr = 0
+        </where>
+    </sql>
+
+    <!--添加软件类型 -->
+    <insert id="insertSoftType">
+        insert into
+         fe_sm_softtype
+        (pk_softtype,code,name,isfree)
+        values
+        (#{pk_softtype},#{code},#{name},#{isfree})
+    </insert>
+
+    <!--条件查询兼并分页显示 -->
+    <select id="selectSoftList" resultType="SoftTypeVO">
+        select
+          *
+        from
+          fe_sm_softtype
+        <include refid="selectWhere"></include>
+    </select>
+
+
+    <!-- 查询软件类型总数量 -->
+    <select id="selectSoftCount" resultType="int">
+        select
+        count(pk_softtype)
+        from
+        fe_sm_softtype
+        <include refid="selectWhere"></include>
+    </select>
+    <!--修改软件类型 -->
+    <update id="updateSoftType">
+        update
+        fe_sm_softtype
+        set
+        name=#{name},
+        isfree=#{isfree}
+        where
+        pk_softtype=#{pk_softtype}
+    </update>
+    <!--删除软件类型 -->
+    <update id="deleteSoftType">
+        update
+        fe_sm_softtype
+        set
+        dr =1
+        <where>
+            pk_softtype in
+            <foreach collection="array" item="pk_softtype" open="(" close=")" separator=",">
+                #{pk_softtype}
+            </foreach>
+        </where>
+    </update>
+    <!--查询所有软件类型 -->
+    <select id="selectSoftTypeAll" resultType="SoftTypeVO">
+        select
+          pk_softtype,name,code,isfree
+        from
+          fe_sm_softtype
+        where
+          dr=0
+    </select>
+    <select id="selectSoftTypeCountBynameAndcode" resultType="int">
+        select
+            count(pk_softtype)
+        from
+            fe_sm_softtype
+        where
+            name=#{name} and dr=0
+    </select>
+    <!--查询软件类型数量-->
+    <select id="selectSoftTypeCount" resultType="String">
+        select
+        case
+            when max(code) is null then count(pk_softtype)
+            else max(code)
+            end as 'code'
+        from
+          fe_sm_softtype
+    </select>
+</mapper>

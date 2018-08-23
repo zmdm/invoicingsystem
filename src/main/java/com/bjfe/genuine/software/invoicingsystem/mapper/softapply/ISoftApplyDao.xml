@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.softapply.ISoftApplyDao">
+    <!-- 软件信息查询条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="creationtime !=null ">
+                and fsa.creationtime =#{creationtime}
+            </if>
+
+            <if test="billstatus !=null ">
+                and fsa.billstatus=#{billstatus}
+            </if>
+        </where>
+    </sql>
+    <!--添加软件使用需求申主表 -->
+    <insert id="insertSoftApplyHVO">
+        insert into
+         fe_soft_apply
+        (pk_soft_apply,pk_deptdoc,creator,pk_org,telphone,creationtime,billstatus,processInstanceId )
+        values
+        (#{pk_soft_apply},#{pk_deptdoc},#{creator},#{pk_org},#{telphone},#{creationtime},#{billstatus},#{processInstanceId})
+    </insert>
+    <!--添加软件使用需求申子表 -->
+    <insert id="insertSoftApplyBVO">
+        insert into
+        fe_soft_apply_b
+        (pk_soft_apply_b,pk_soft_apply,crowno,pk_softtype,pk_soft,softpurpose,funquantity,appnum,isdomestic,vnote)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.pk_soft_apply_b},#{item.pk_soft_apply},#{item.crowno},#{item.pk_softtype},#{item.pk_soft},#{item.softpurpose},#{item.funquantity},#{item.appnum},#{item.isdomestic},#{item.vnote})
+        </foreach>
+    </insert>
+
+    <!--条件查询兼并分页显示 -->
+    <select id="selectSoftApplyList" resultType="SoftApplyHVO">
+        select
+        fsa.pk_soft_apply,fbd.name as pk_deptdoc,fbp.name as creator,foo.name as pk_org,fsa.telphone,fsa.creationtime,fbp2.name as deptapprover,fsa.depttaudittime,fsa.billstatus,
+        fsa.processInstanceId,fsa.deptcomment,fbp3.name as internationalapprover,fsa.internationaltaudittime,fsa.internationalcomment,fsa.processInstanceId
+        from
+        fe_soft_apply fsa
+        join fe_bd_dept fbd on fsa.pk_deptdoc = fbd.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fsa.creator and fbp.pk_psndoc=#{creator}
+        left join fe_bd_psndoc fbp2 on fbp2.pk_psndoc = fsa.deptapprover
+        left join fe_bd_psndoc fbp3 on fbp3.pk_psndoc = fsa.internationalapprover
+        join fe_org_orgs foo on foo.pk_org = fsa.pk_org
+        <include refid="selectWhere"></include>
+        order by fsa.creationtime desc
+        limit #{skipNumber},#{pageCount}
+    </select>
+    <!-- 查询软件信息总数量 -->
+    <select id="selectSoftApplyCount" resultType="int">
+        select
+          count(pk_soft_apply)
+        from
+          fe_soft_apply fsa
+        join fe_bd_dept fbd on fsa.pk_deptdoc = fbd.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fsa.creator and fbp.pk_psndoc=#{creator}
+        join fe_org_orgs foo on foo.pk_org = fsa.pk_org
+        <include refid="selectWhere"></include>
+    </select>
+    <!-- 查询软件使用需求申请相关子表 -->
+    <select id="selectSoftApplyBVOList" resultType="SoftApplyBVO">
+        select
+          fsab.pk_soft_apply_b,fsab.pk_soft_apply,crowno,fsst.name as pk_softtype,fssi.name as pk_soft,fsab.softpurpose,fsab.funquantity,fsab.appnum,fsab.isdomestic,fsab.Vnote,
+          fsab.pk_softtype as softtype_pk,fsab.pk_soft as soft_pk
+        from
+          fe_soft_apply_b fsab
+        join fe_sm_softtype fsst on fsab.pk_softtype = fsst.pk_softtype
+        join fe_sm_softinfo fssi on fssi.pk_soft = fsab.pk_soft
+    </select>
+    <!--修改软件使用需求申请字表信息 -->
+    <update id="updateSoftApply">
+        update
+          fe_soft_apply_b
+        set
+          pk_softtype=#{pk_softtype},
+          pk_soft=#{pk_soft},
+          softpurpose=#{softpurpose},
+          funquantity=#{funquantity},
+          appnum=#{appnum},
+          isdomestic=#{isdomestic},
+          Vnote=#{vnote}
+        where
+          pk_soft_apply_b=#{pk_soft_apply_b}
+    </update>
+    <!--删除软件需求申请表子表信息-->
+    <delete id="deleteSoftApplyB">
+        delete
+        from
+          fe_soft_apply_b
+        where
+          pk_soft_apply_b in
+        <foreach collection="list" item="pk_soft_apply_b" open="(" close=")" separator=",">
+            #{pk_soft_apply_b}
+        </foreach>
+    </delete>
+    <!--删除软件需求申请表主表信息-->
+    <delete id="deleteSoftApply">
+        delete
+        from
+        fe_soft_apply
+        where
+        pk_soft_apply =#{pk_soft_apply}
+    </delete>
+    <!--修改软件申请表状态-->
+    <update id="updateSoftApplyBillstatus">
+        update
+          fe_soft_apply
+        set
+          <if test="billstatus !=null">
+              billstatus =#{billstatus}
+          </if>
+          <if test="deptcomment !=null">
+              ,deptcomment=#{deptcomment}
+          </if>
+          <if test="deptapprover !=null">
+            ,deptapprover=#{deptapprover}
+          </if>
+          <if test="depttaudittime !=null">
+            ,depttaudittime=#{depttaudittime}
+          </if>
+            <if test="internationalcomment !=null">
+                ,internationalcomment=#{internationalcomment}
+            </if>
+            <if test="internationalapprover !=null">
+                ,internationalapprover=#{internationalapprover}
+            </if>
+            <if test="internationaltaudittime !=null">
+                ,internationaltaudittime=#{internationaltaudittime}
+            </if>
+        where
+          pk_soft_apply =#{pk_soft_apply}
+    </update>
+    <!--查询正在审核的申请 -->
+    <select id="selectSoftApplyIsApply" resultType="SoftApplyHVO">
+        select
+         fsa.pk_soft_apply,fbd.name as pk_deptdoc,fbp.name as creator,foo.name as pk_org,fsa.telphone,fsa.creationtime,fsa.billstatus,
+         fsa.processInstanceId,fbp2.name as deptapprover,fsa.depttaudittime,fsa.deptcomment,fbp3.name as internationalapprover,fsa.internationaltaudittime,fsa.internationalcomment
+        from
+          fe_soft_apply fsa
+        join fe_bd_dept fbd on fsa.pk_deptdoc = fbd.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fsa.creator
+        left join fe_bd_psndoc fbp2 on fbp2.pk_psndoc = fsa.deptapprover
+        left join fe_bd_psndoc fbp3 on fbp3.pk_psndoc = fsa.internationalapprover
+        join fe_org_orgs foo on foo.pk_org = fsa.pk_org and foo.pk_org = #{pk_org}
+    </select>
+    <!--通过软件申请主表字段修改申请状态-->
+    <update id="updateSoftApplyBVOBillstatusBypk_softapply">
+        update
+          fe_soft_apply
+        set
+          billstatus =4
+        where
+        pk_soft_apply in
+        <foreach collection="list" item="pk_soft_apply" open="(" close=")" separator=",">
+            #{pk_soft_apply}
+        </foreach>
+    </update>
+    <!--通过软件申请主表主键查询子表数据-->
+    <select id="selectSoftApplyBVOBypk_soft_apply" resultType="SoftApplyBVO">
+        select
+          fsab.pk_soft_apply_b,fsab.pk_soft_apply,crowno,fsst.name as pk_softtype,fssi.name as pk_soft,fsab.softpurpose,fsab.funquantity,fsab.appnum,fsab.isdomestic,fsab.Vnote,
+          fsab.pk_softtype as softtype_pk,fsab.pk_soft as soft_pk
+        from
+          fe_soft_apply_b fsab
+        join fe_sm_softtype fsst on fsab.pk_softtype = fsst.pk_softtype
+        join fe_sm_softinfo fssi on fssi.pk_soft = fsab.pk_soft
+        where
+          fsab.pk_soft_apply = #{pk_soft_apply}
+    </select>
+    <!---->
+    <select id="selectApplyDeptBypk_soft_apply" resultType="String">
+        select
+          pk_deptdoc
+        from
+          fe_soft_apply
+        where
+          pk_soft_apply = #{pk_soft_apply}
+    </select>
+</mapper>

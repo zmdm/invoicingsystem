@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.menu.IMenuDao">
+
+    <!-- 用户分页条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="name !=null and name !=''">
+                and name like '%' #{name} '%'
+            </if>
+
+            <if test="code !=null and code !=''">
+                and code like '%' #{code} '%'
+            </if>
+            and fsm.dr = 0
+        </where>
+    </sql>
+
+    <!--添加菜单信息 -->
+    <insert id="insertMenu">
+        insert into
+       fe_sm_menu
+        (cfunid,funcode,pk_father,funname,location,isenable,creator,creationtime)
+        values
+        (#{cfunid},#{funcode},#{pk_father},#{funname},#{location},#{isenable},#{creator},#{creationtime})
+    </insert>
+
+    <!--条件查询兼并分页显示 -->
+    <select id="selectMenuList" resultType="MenuItemVO">
+        select
+        fsm.cfunid,concat(fsm.funcode,fsm.pk_father)as funcode,fsm.funname,fsm.location,fsm.isenable,fbp.name as creator,fsm.creationtime
+        from
+        fe_sm_menu fsm
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fsm.creator
+        <include refid="selectWhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+    <!--查询所有菜单项 -->
+    <select id="selectMenuAll" resultType="MenuItemVO">
+        select
+        fsm.cfunid,concat(fsm.pk_father,fsm.funcode)as funcode,fsm.funname,fsm.location,fsm.isenable,fsm.creator,fsm.creationtime
+        from
+        fe_sm_menu fsm
+        <include refid="selectWhere"></include>
+    </select>
+
+    <!-- 查询用户总数量 -->
+    <select id="selectMenuCount" resultType="int">
+        select
+        count(cfunid)
+        from
+        fe_sm_menu fsm
+        <include refid="selectWhere"></include>
+    </select>
+    <!--修改菜单信息 -->
+    <update id="updateMenu">
+        update
+        fe_sm_menu
+        set
+        funname=#{funname},
+        location=#{location},
+        isenable=#{isenable},
+        creationtime=#{creationtime}
+        where
+        cfunid=#{cfunid}
+    </update>
+    <!--删除菜单信息 -->
+    <update id="deleteMenu">
+        update
+        fe_sm_menu
+        set
+        dr =1
+        <where>
+            cfunid in
+            <foreach collection="array" item="cfunid" open="(" close=")" separator=",">
+                #{cfunid}
+            </foreach>
+        </where>
+    </update>
+    <!--查询所有权限菜单信息是否分配 -->
+    <select id="editMenuNoPower" resultType="MenuItemVO">
+        select
+		fsm.funname,fsm.cfunid,fsm.pk_father,fsm.funcode,fsm.creator,fsm.creationtime,fsm.location,case
+                                                       when fspm.pk_permid is null then 'false'
+                                                       else 'true'
+                                                       end as 'checked'
+		from
+			fe_sm_menu fsm
+		left join
+		  fe_sm_permissionmenu fspm on fsm.cfunid = fspm.cfunid and fspm.pk_permid = #{pk_permid} and fspm.dr = 0
+		where
+			fsm.dr = 0 and fsm.isenable = 0
+		group by fsm.cfunid
+    </select>
+    <!--通过过一级编码查询二级编码数量 -->
+    <select id="selectMenuCountByFatherCode" resultType="long">
+        select
+          count(cfunid)
+        from
+          fe_sm_menu
+        where
+          pk_father=#{pk_father}
+    </select>
+    <!--编辑菜单项状态 -->
+    <update id="editMenuIsenable">
+        update
+          fe_sm_menu
+        set
+          isenable=#{isenable}
+        <where>
+            cfunid in
+            <foreach collection="cfunid" item="cfunid" open="(" close=")" separator=",">
+                #{cfunid}
+            </foreach>
+        </where>
+    </update>
+    <!-- 通过权限查询分配的权限-->
+    <select id="selectMenuByPermiddsion" resultType="MenuItemVO">
+        select
+          fsm.funcode,fsm.funname,fsm.location,fbp.name as creator,fsm.creationtime
+        from
+          fe_sm_menu fsm
+        join fe_sm_permissionmenu fspm on fsm.cfunid = fspm.cfunid and fspm.dr = 0
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fsm.creator
+        where
+          fsm.dr=0 and fspm.pk_permid=#{pk_permid}
+    </select>
+    <!-- 通过登陆用户查询相应职责 -->
+    <select id="selectMenuByuser" resultType="MenuItemVO">
+        select
+        fsm.cfunid,fsm.funcode,fsm.pk_father,fsm.funname,fspm.pk_permid ,case
+                                                       when fspm.pk_permid is null then 'false'
+                                                       else 'true'
+                                                       end as 'checked',fsu.username,fsu.cuserid
+        from
+	      fe_sm_user fsu
+         join fe_sm_userrole fsur on fsu.cuserid = fsur.cuserid and fsur.dr = 0 and fsu.username = #{username}
+         join fe_sm_role fsr on fsur.pk_role = fsr.pk_role and fsr.dr =0
+         join fe_sm_rolepermission fsrp on fsrp.pk_role = fsr.pk_role and fsrp.dr =0
+          join fe_sm_permission fsp on fsrp.pk_permid = fsp.pk_permid  and fsp.dr =0
+         join fe_sm_permissionmenu fspm on fsp.pk_permid = fspm.pk_permid and fspm.dr=0
+        right join fe_sm_menu fsm on fsm.cfunid = fspm.cfunid and fsm.dr=0 and fsm.isenable = 0
+        GROUP BY cfunid
+    </select>
+    <!--selectMenuPkFatherCount -->
+    <select id="selectMenuPkFatherCount" resultType="int">
+        select
+            count(cfunid)
+        FROM
+            fe_sm_menu fsm1
+        where
+            pk_father =''
+    </select>
+    <!--通过功能名查询菜单项数量-->
+    <select id="selectMenuCountByFunname" resultType="int">
+        select
+          count(cfunid)
+        from
+          fe_sm_menu
+        where
+          <if test="pk_father != '' ">
+             pk_father != ''
+          </if>
+          <if test="pk_father =='' ">
+             pk_father =''
+          </if>
+          and funname = #{funname}
+    </select>
+    <!--通过主键查询功能名称-->
+    <select id="selectMenuNameBycfunid" resultType="String">
+        select
+          funname
+        from
+          fe_sm_menu
+        where
+          cfunid =#{cfunid n}
+    </select>
+</mapper>

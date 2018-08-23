@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.org.IOrgDao">
+	<!-- 用户分页条件 -->
+	<sql id="selectWhere">
+		<where>
+			<if test="pk_org !=null and pk_org !=''">
+				and foo.pk_org = #{pk_org}
+			</if>
+
+			<if test="code !=null and code !=''">
+				and foo.code like '%' #{code} '%'
+			</if>
+			and foo.dr = 0
+		</where>
+	</sql>
+	<!--添加组织 -->
+	<insert id="insertOrg">
+		insert into
+		fe_org_orgs
+		(pk_org,code,name,pk_fatherorg,creator,creationtime)
+		values
+		(#{pk_org},#{code},#{name},#{pk_fatherorg},#{pk_psndoc},#{creationtime})
+	</insert>
+	<!-- 查询用户总数量 -->
+	<select id="selectOrgCount" resultType="int">
+		select
+		count(pk_org)
+		from
+		fe_org_orgs foo
+		<include refid="selectWhere"></include>
+	</select>
+	<!--查询所有组织 -->
+	<select id="selectOrgList" resultType="OrgVO">
+		select
+			foo.pk_org,foo.code,foo.name,foo.pk_fatherorg,fbp.name as creator,foo.creationtime
+		from
+			fe_org_orgs foo
+		join fe_bd_psndoc fbp on foo.creator = fbp.pk_psndoc
+		<include refid="selectWhere"></include>
+	</select>
+
+	<!--条件查询兼并分页显示 -->
+	<select id="selectOrgPage" resultType="OrgVO">
+		select
+		foo.pk_org,foo.code,foo.name,foo.pk_fatherorg,fbp.name as creator,foo.creationtime
+		from
+		fe_org_orgs foo
+		join fe_bd_psndoc fbp on foo.creator = fbp.pk_psndoc
+		<include refid="selectWhere"></include>
+	</select>
+
+	<!--修改组织 -->
+	<update id="updateOrg">
+		update
+			fe_org_orgs
+		set
+			name=#{name},
+			pk_fatherorg=#{pk_fatherorg},
+			creationtime=#{creationtime}
+		where
+			pk_org=#{pk_org} and dr=0
+	</update>
+	<!--删除组织 -->
+	<update id="deleteOrgs">
+		update
+			fe_org_orgs
+		set
+			dr =1
+		<where>
+			pk_org in
+			<foreach collection="array" item="pk_org" open="(" close=")" separator=",">
+				#{pk_org}
+			</foreach>
+		</where>
+	</update>
+	<!--通过编码查询组织 -->
+	<select id="selectOrgByCode" resultType="int">
+		select
+			count(pk_org)
+		from
+			fe_org_orgs
+		where
+			code =#{code} and dr=0
+	</select>
+</mapper>

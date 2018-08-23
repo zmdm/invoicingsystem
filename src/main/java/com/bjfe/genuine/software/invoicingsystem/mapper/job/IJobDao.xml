@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.job.IJobDao">
+    <sql id="selectWhere">
+        <where>
+            <if test="pk_org !=null and pk_org !=''">
+                and  fbj.pk_org = #{pk_org}
+            </if>
+            <if test="pk_dept !=null and pk_dept !=''">
+                and  fbj.pk_deptdoc = #{pk_dept}
+            </if>
+            <if test="code !=null and code !=''">
+                and fbj.code like '%' #{code} '%'
+            </if>
+            and fbj.dr=0;
+        </where>
+    </sql>
+    <!--添加岗位 -->
+    <insert id="insertJob">
+        insert into
+        fe_bd_job
+        (pk_job,code,name,pk_deptdoc,pk_org,creator,creationtime)
+        values
+        (#{pk_job},#{code},#{name},#{pk_deptdoc},#{pk_org},#{creator},#{creationtime})
+    </insert>
+    <!--查询所有岗位 -->
+    <select id="selectJobList" resultType="JobVO">
+        select
+          fbj.pk_job ,fbj.code,fbj.name,fbd.name as pk_deptdoc,foo.name as pk_org,fbj.creator,fbj.creationtime,
+          fbj.pk_deptdoc as dept_pk,fbj.pk_org as org_pk
+        from
+          fe_bd_job fbj
+        join fe_org_orgs foo on fbj.pk_org = foo.pk_org and foo.dr=0
+        join fe_bd_dept fbd on fbj.pk_deptdoc = fbd.pk_deptdoc and fbd.dr = 0
+        where
+          fbj.dr=0
+    </select>
+
+    <!--条件查询岗位兼分页显示-->
+    <select id="selectJobPage" resultType="JobVO">
+       select
+          fbj.pk_job ,fbj.code,fbj.name,fbd.name as pk_deptdoc,foo.name as pk_org,fbj.creator,fbj.creationtime,
+          fbj.pk_deptdoc as dept_pk,fbj.pk_org as org_pk
+        from
+          fe_bd_job fbj
+        join fe_org_orgs foo on fbj.pk_org = foo.pk_org and foo.dr=0
+        join fe_bd_dept fbd on fbj.pk_deptdoc = fbd.pk_deptdoc and fbd.dr = 0
+        <include refid="selectWhere"></include>
+    </select>
+
+    <!--删除岗位 -->
+    <update id="deleteJobs">
+        update
+        fe_bd_job
+        set
+        dr =1
+        <where>
+            pk_job in
+            <foreach collection="array" item="pk_job" open="(" close=")" separator=",">
+                #{pk_job}
+            </foreach>
+        </where>
+    </update>
+    <!--修改岗位 -->
+    <update id="updateJob">
+        update
+          fe_bd_job
+        set
+            name=#{name},
+            code=#{code},
+            pk_deptdoc=#{pk_deptdoc},
+            pk_org=#{pk_org},
+            creationtime=#{creationtime}
+        where
+          pk_job=#{pk_job}
+    </update>
+
+    <!--查询岗位总数量-->
+    <select id="selectJobCount" resultType="int">
+        select
+        count(pk_job)
+        from
+        fe_bd_job fbj
+       join fe_bd_dept fbd on fbj.pk_deptdoc = fbd.pk_deptdoc and fbd.dr=0
+        <include refid="selectWhere"></include>
+    </select>
+
+    <!--通过部门查询相关岗位数量 -->
+    <select id="selectJobCountByDept" resultType="java.util.HashMap">
+        select
+            max(fbj.code) as count,fbd.code
+        from
+            fe_bd_job fbj
+        join fe_bd_dept fbd on fbj.pk_deptdoc = fbd.pk_deptdoc
+        where fbd.pk_deptdoc =#{pk_dept}
+    </select>
+</mapper>

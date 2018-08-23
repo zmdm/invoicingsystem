@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.cuser.ICuserDao">
+    <!--namespace命名空间 这里的xml名称要和mapper.java名称一样-->
+        <!-- 用户分页条件 -->
+        <sql id="selectWhere">
+            <where>
+                <if test="pk_org !=null and pk_org !=''">
+                    and  fsu.pk_org = #{pk_org}
+                </if>
+
+                <if test="pk_dept !=null and pk_dept !=''">
+                    and  fbd.pk_deptdoc = #{pk_dept}
+                </if>
+
+                <if test="username !=null and username !=''">
+                    and fsu.username like '%' #{username} '%'
+                </if>
+
+                <if test="usercode !=null and usercode !=''">
+                    and fsu.usercode like '%' #{usercode} '%'
+                </if>
+                and fsu.dr = 0
+            </where>
+        </sql>
+        <!--添加用户 -->
+        <insert id="insertCuser">
+            insert into
+            fe_sm_user
+            (cuserid,usercode,username,password,pk_psndoc,pk_org,enablestate,creator,creationtime)
+            values
+            (#{cuserid},#{usercode},#{username},#{password},#{pk_psndoc},#{pk_org},#{enablestate},#{pk_creator},#{creationtime})
+        </insert>
+        <!--条件查询兼并分页显示 -->
+        <select id="selectCuserList" resultType="CuserVO">
+            select
+            fsu.cuserid,fsu.usercode,fsu.username,fsu.password,foo.name as pk_org,fbp.name as pk_psndoc,fsu.enablestate,fsu.creationtime,
+            fsu.pk_org as org_pk,fsu.pk_psndoc as psndoc_pk,fbp.pk_dept as pk_dept,fsu.pk_org as org_pk,fsu.pk_psndoc as psndoc_pk,fbp.name as creator
+            from
+            fe_sm_user fsu
+            join fe_org_orgs foo on fsu.pk_org = foo.pk_org
+            join fe_bd_psndoc fbp on fsu.pk_psndoc = fbp.pk_psndoc
+            join fe_bd_dept fbd on fbp.pk_dept = fbd.pk_deptdoc
+            <include refid="selectWhere"></include>
+            limit #{skipNumber},#{pageCount}
+        </select>
+        <!-- 查询用户总数量 -->
+        <select id="selectCuserCount" resultType="int">
+            select
+            count(cuserid)
+            from
+            fe_sm_user fsu
+            join fe_org_orgs foo on fsu.pk_org = foo.pk_org
+            join fe_bd_psndoc fbp on fsu.pk_psndoc = fbp.pk_psndoc
+            join fe_bd_dept fbd on fbp.pk_dept = fbd.pk_deptdoc
+            <include refid="selectWhere"></include>
+        </select>
+        <!--修改用户 -->
+        <update id="updateCuser">
+            update
+            fe_sm_user
+            set
+            username=#{username},
+            <if test="password !=null">
+                password=#{newpass},
+            </if>
+            pk_org=#{pk_org},
+            pk_psndoc=#{pk_psndoc},
+            enablestate=#{enablestate},
+            creationtime=#{creationtime}
+            where
+            cuserid=#{cuserid}
+        </update>
+        <!--删除用户 -->
+        <update id="deleteCuser">
+            update
+            fe_sm_user
+            set
+            dr =1
+            <where>
+                cuserid in
+                <foreach collection="array" item="cuserid" open="(" close=")" separator=",">
+                    #{cuserid}
+                </foreach>
+            </where>
+        </update>
+    <!--修改用户状态 -->
+    <update id="updatePsndocIstate">
+        update
+        fe_sm_user
+        set
+        enablestate=#{enablestate}
+        <where>
+            cuserid in
+            <foreach collection="cuserids" item="cuserids" open="(" close=")" separator=",">
+                #{cuserids}
+            </foreach>
+        </where>
+    </update>
+    <!--通过主键查询原密码 -->
+    <select id="selectOldPass" resultType="string">
+        select
+          password
+        from
+          fe_sm_user
+        where
+          cuserid=#{cuserid}
+    </select>
+    <!-- 查询所有用户角色信息是否分配 -->
+    <select id="editUserNoRole" resultType="CuserVO">
+        select
+          fsu.username,fsu.cuserid,fsu.usercode,case
+							   when fsur.pk_role is null then 'false'
+							   else 'true'
+							   end as 'checked'
+        from
+          fe_sm_user fsu
+        left join
+          fe_sm_userrole fsur
+        on
+          fsu.cuserid = fsur.cuserid and fsur.pk_role = #{pk_role} and fsur.dr = 0
+        where
+		  fsu.dr = 0
+    </select>
+    <!--通过角色查询关联的用户 -->
+    <select id="selectUserByRole" resultType="CuserVO">
+        select
+          fsu.usercode,fsu.username
+        from
+          fe_sm_user fsu
+        join fe_sm_userrole fsur on fsur.cuserid = fsu.cuserid and fsur.pk_role = #{pk_role} and fsur.dr = 0
+        where
+		  fsu.dr = 0
+    </select>
+    <!--用户登陆查询 -->
+    <select id="customerByCodeAndPass" resultType="CuserVO">
+        select
+          fsu.pk_org,foo.name as org_pk,usercode,username,fbd.pk_deptdoc as pk_dept,fbd.name as dept_pk,fbp.name as psndoc_pk,fsu.pk_psndoc,
+          fbp.telphone,fbj.name as jobname,fsu.enablestate,fsu.dr
+        from
+          fe_sm_user fsu
+        left join fe_bd_psndoc fbp on fbp.pk_psndoc = fsu.pk_psndoc and fbp.dr=0
+        join fe_bd_job fbj on fbp.pk_job = fbj.pk_job
+				left join fe_bd_dept fbd on fbp.pk_dept = fbd.pk_deptdoc and fbp.dr=0
+				left join fe_org_orgs foo on fsu.pk_org = foo.pk_org and foo.dr=0
+        where
+          fsu.username=#{username} and fsu.password=#{password}
+    </select>
+    <!--通过编写查询用户数量-->
+    <select id="selectPsndocByCode" resultType="int">
+        select
+          count(cuserid)
+        from
+          fe_sm_user
+        where
+          username = #{username} and dr=0 or usercode =#{usercode} and dr=0
+    </select>
+    <!--查询所有用户 -->
+    <select id="selectUserAll" resultType="CuserVO">
+        select
+            fsu.cuserid,fsu.usercode,fsu.username,fsu.password,foo.name as pk_org,fbp.name as pk_psndoc,fsu.enablestate,fsu.creationtime,
+            fsu.pk_org as org_pk,fsu.pk_psndoc as psndoc_pk,fbp.pk_dept as pk_dept,fsu.pk_org as org_pk,fsu.pk_psndoc as psndoc_pk,fbp.name as creator
+            from
+            fe_sm_user fsu
+            join fe_org_orgs foo on fsu.pk_org = foo.pk_org
+            join fe_bd_psndoc fbp on fsu.pk_psndoc = fbp.pk_psndoc
+        where
+          fsu.dr =0
+    </select>
+    <!--查询本部门领导用户名称-->
+    <select id="selectDeptLeaderUser" resultType="String">
+        select
+		fsu.username
+        from
+            fe_sm_user fsu
+        join fe_sm_userrole fsur on fsur.cuserid = fsu.cuserid
+        join fe_sm_role fsr on fsur.pk_role = fsr.pk_role and fsr.rolename = '部门领导'
+        join fe_bd_psndoc fbp on fsu.pk_psndoc = fbp.pk_psndoc
+        join fe_bd_dept fbd on fbp.pk_dept = fbd.pk_deptdoc and fbd.pk_deptdoc =#{pk_dept}
+        join fe_org_orgs foo on foo.pk_org = fsu.pk_org and foo.pk_org =#{pk_org}
+    </select>
+    <!--查询信息化部门用户-->
+    <select id="selectInternationDeptUser" resultType="String">
+        select
+		fsu.username
+        from
+            fe_sm_user fsu
+        join fe_sm_userrole fsur on fsur.cuserid = fsu.cuserid
+        join fe_sm_role fsr on fsur.pk_role = fsr.pk_role and fsr.rolename = '信息部审核人员'
+        join fe_org_orgs foo on foo.pk_org = fsu.pk_org and foo.pk_org =#{pk_org}
+    </select>
+    <!--查询财务部门用户-->
+    <select id="selectFinanceDeptUser" resultType="String">
+        select
+		fsu.username
+        from
+            fe_sm_user fsu
+        join fe_sm_userrole fsur on fsur.cuserid = fsu.cuserid
+        join fe_sm_role fsr on fsur.pk_role = fsr.pk_role and fsr.rolename = '财务部审核人员'
+        join fe_org_orgs foo on foo.pk_org = fsu.pk_org and foo.pk_org =#{pk_org}
+    </select>
+    <!--查询单位领导用户-->
+    <select id="selectOrgLederUser" resultType="String">
+        select
+		fsu.username
+        from
+            fe_sm_user fsu
+        join fe_sm_userrole fsur on fsur.cuserid = fsu.cuserid
+        join fe_sm_role fsr on fsur.pk_role = fsr.pk_role and fsr.rolename = '单位领导'
+        join fe_org_orgs foo on foo.pk_org = fsu.pk_org and foo.pk_org =#{pk_org}
+    </select>
+</mapper>

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.softorder.ISoftOrderDao">
+    <!-- 软件信息查询条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="creationtime	 !=null ">
+                and fso.creationtime=#{creationtime}
+            </if>
+        </where>
+    </sql>
+    <!--添加软件采购计划主表 -->
+    <insert id="insertSoftOrderHVO">
+        insert into
+         fe_soft_order
+        (pk_soft_order,pk_deptdoc,creator,pk_org,telphone,creationtime,processInstanceId)
+        values
+        (#{pk_soft_order},#{pk_deptdoc},#{creator},#{pk_org},#{telphone},#{creationtime},#{processInstanceId})
+    </insert>
+    <!--添加软件采购计划子表 -->
+    <insert id="insertSoftOrderBVO">
+        insert into
+        fe_soft_order_b
+        (pk_soft_order_b,pk_soft_order,crowno,softversion,pk_soft,price,ordnum,total,vnote,timelimit)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.pk_soft_order_b},#{item.pk_soft_order},#{item.crowno},#{item.softversion},#{item.pk_soft},#{item.price},#{item.ordnum},#{item.total},#{item.vnote},#{item.timelimit})
+        </foreach>
+    </insert>
+
+    <!--条件查询兼并分页显示 -->
+    <select id="selectSoftOrderList" resultType="SoftOrderHVO">
+        select
+        fso.pk_soft_order,fbd.name as pk_deptdoc,fbp.name as creator,foo.name as pk_org,fso.telphone,fso.creationtime,
+        fso.billstatus,fbp1.name as internationalapprover, fso.internationaltaudittime,fso.internationalcomment,fbp2.name as financeapprover,
+        fso.financetaudittime,fso.financecomment,fbp3.name as orgapprover,fso.orgtaudittime,fso.orgcomment,fso.processInstanceId
+        from
+          fe_soft_order fso
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fso.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fso.creator and fbp.pk_psndoc=#{creator}
+        left join fe_bd_psndoc fbp1 on fbp1.pk_psndoc = fso.internationalapprover
+        left join fe_bd_psndoc fbp2 on fbp2.pk_psndoc = fso.financeapprover
+        left join fe_bd_psndoc fbp3 on fbp3.pk_psndoc = fso.orgapprover
+        join fe_org_orgs foo on foo.pk_org = fso.pk_org
+        <include refid="selectWhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+    <!-- 查询软件信息总数量 -->
+    <select id="selectSoftOrderCount" resultType="int">
+        select
+          count(pk_soft_order)
+        from
+          fe_soft_order fso
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fso.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fso.creator and fbp.pk_psndoc=#{creator}
+        join fe_org_orgs foo on foo.pk_org = fso.pk_org
+        <include refid="selectWhere"></include>
+    </select>
+    <!-- 查询软件采购计划子表 -->
+    <select id="selectSoftOrderBVOList" resultType="SoftOrderBVO">
+        select
+          pk_soft_order_b,pk_soft_order,crowno,fssi.version as softversion,fssi.name as pk_soft,price,ordnum,total,vnote,
+          fsob.pk_soft as soft_pk,fsob.timelimit
+        from
+          fe_soft_order_b fsob
+        join fe_sm_softinfo fssi on fsob.pk_soft = fssi.pk_soft
+    </select>
+    <!--修改软件使用需求申请字表信息 -->
+    <update id="updateSoftOrder">
+        update
+          fe_soft_order_b
+        set
+          price=#{price},
+          total=#{total},
+          timelimit=#{timelimit}
+        where
+          pk_soft_order_b=#{pk_soft_order_b}
+    </update>
+    <!--查询当前用户通过审批的软件使用需求申请 -->
+    <select id="selectSoftApplyIsOk" resultType="SoftOrderBVO">
+        select
+        fsab.pk_soft_apply,fssi.name as pk_soft,fssi.version as softversion,fsab.appnum as ordnum,fsab.Vnote,fsab.pk_soft as soft_pk
+        from
+        fe_soft_apply_b fsab
+        join fe_sm_softinfo fssi on fsab.pk_soft = fssi.pk_soft
+        join fe_soft_apply fsa on fsab.pk_soft_apply = fsa.pk_soft_apply and fsa.creator=#{creator}
+        where
+          fsa.billstatus =2
+    </select>
+    <!--修改软件采购状态-->
+    <update id="updateSoftOrderBillstatus">
+        update
+        fe_soft_order
+        set
+        <if test="billstatus !=null">
+            billstatus =#{billstatus}
+        </if>
+        <if test="internationalapprover !=null">
+            ,internationalapprover=#{internationalapprover}
+        </if>
+        <if test="internationaltaudittime !=null">
+            ,internationaltaudittime=#{internationaltaudittime}
+        </if>
+        <if test="internationalcomment !=null">
+            ,internationalcomment=#{internationalcomment}
+        </if>
+        <if test="financeapprover !=null">
+            ,financeapprover=#{financeapprover}
+        </if>
+        <if test="financetaudittime !=null">
+            ,financetaudittime=#{financetaudittime}
+        </if>
+        <if test="financecomment !=null">
+            ,financecomment=#{financecomment}
+        </if>
+        <if test="orgapprover !=null">
+            ,orgapprover=#{orgapprover}
+        </if>
+        <if test="orgtaudittime !=null">
+            ,orgtaudittime=#{orgtaudittime}
+        </if>
+        <if test="orgcomment !=null">
+            ,orgcomment=#{orgcomment}
+        </if>
+        where
+        pk_soft_order =#{pk_soft_order}
+    </update>
+    <!--查询正在审核的软件采购申请-->
+    <select id="selectSoftOrderIsApply" resultType="SoftOrderHVO">
+        select
+        fso.pk_soft_order,fbd.name as pk_deptdoc,fbp.name as creator,foo.name as pk_org,fso.telphone,fso.creationtime,
+        fso.billstatus,fso.type,fso.processInstanceId,fbp1.name as internationalapprover, fso.internationaltaudittime,fso.internationalcomment,fbp2.name as financeapprover,
+        fso.financetaudittime,fso.financecomment,fbp3.name as orgapprover,fso.orgtaudittime,fso.orgcomment
+        from
+          fe_soft_order fso
+        join fe_bd_dept fbd on fbd.pk_deptdoc = fso.pk_deptdoc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fso.creator
+        left join fe_bd_psndoc fbp1 on fbp1.pk_psndoc = fso.internationalapprover
+        left join fe_bd_psndoc fbp2 on fbp2.pk_psndoc = fso.financeapprover
+        left join fe_bd_psndoc fbp3 on fbp3.pk_psndoc = fso.orgapprover
+        join fe_org_orgs foo on foo.pk_org = fso.pk_org and foo.pk_org =#{pk_org}
+    </select>
+    <select id="selectSoftOrderBypk_softAndPk_org" resultType="Map">
+        select
+          fsob.ordnum,fsob.permis,fsob.softversion,fso.creationtime,fsob.price
+        from
+          fe_soft_order_b fsob
+        join fe_soft_order fso on fso.pk_soft_order = fsob.pk_soft_order and fso.pk_org = #{pk_org}
+        where
+          fsob.pk_soft = #{pk_soft}
+    </select>
+</mapper>

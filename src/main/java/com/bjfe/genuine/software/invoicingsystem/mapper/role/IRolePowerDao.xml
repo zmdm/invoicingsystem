@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.role.IRolePowerDao">
+	<!--添加角色权限关系 -->
+	<insert id="insertRolePower">
+		insert into
+			 fe_sm_rolepermission
+			 (pk_role_power,pk_role,pk_permid)
+		values
+			(#{pk_role_power},#{pk_role},#{pk_permid})
+	</insert>
+	<!--通过角色主键查询角色权限关系 -->
+	<select id="selectRolePowerByCondition" resultType="RolePermissionVO">
+		select
+			*
+		from
+			fe_sm_rolepermission
+		where
+			pk_role = #{pk_role}
+	</select>
+	<!--把dr置为1进行删除角色权限关系 -->
+	<update id="deleteRolePower" parameterType="java.util.List">
+		update
+			fe_sm_rolepermission
+		set
+			dr = 1
+		<where>
+			pk_permid in
+			<foreach collection="list" item="pk_power" open="(" close=")" separator=",">
+				#{pk_power}
+			</foreach>
+			and pk_role = #{pk_role}
+		</where>
+	</update>
+	<!--修改表中已有角色权限dr字段 -->
+	<update id="updateRolePowerDr">
+		update
+			fe_sm_rolepermission
+		set
+			dr = 0
+		where
+			pk_role = #{pk_role} and pk_permid = #{pk_permid}
+	</update>
+</mapper>

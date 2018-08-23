@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.computer.IComputerDao">
+    <!-- 软件信息查询条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="name !=null and name !=''">
+                and name like '%' #{name} '%'
+            </if>
+
+            <if test="code !=null and code !=''">
+                and code like '%' #{code} '%'
+            </if>
+            fc.dr = 0
+        </where>
+    </sql>
+    <!--添加计算机管理信息 -->
+    <insert id="insertComputer">
+        insert into
+         fe_computer
+        (pk_computer,code,name,brand,pk_psndoc,vlocation,pk_soft,vnote)
+        values
+        (#{pk_computer},#{code},#{name},#{brand},#{pk_psndoc},#{vlocation},#{pk_soft},#{vnote})
+    </insert>
+
+
+    <!--条件查询兼并分页显示 -->
+    <select id="selectComputerList" resultType="ComputerVO">
+        select
+          fc.pk_computer,fc.code,fc.name,fc.brand,fbp.name as pk_psndoc,fc.vlocation,fc.pk_soft,fssi.name as soft_name,fssi.version as version,fc.vnote,
+          fc.pk_psndoc as psndoc_pk,fbp.pk_org
+        from
+          fe_computer fc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fc.pk_psndoc
+        join fe_sm_softinfo fssi on fc.pk_soft = fssi.pk_soft
+        <include refid="selectWhere"></include>
+    </select>
+
+    <!--修改软件使用需求申请字表信息 -->
+    <update id="updateComputer">
+        update
+          fe_computer
+        set
+          name=#{name},
+          brand=#{brand},
+          pk_psndoc=#{pk_psndoc},
+          pk_soft=#{pk_soft},
+          vlocation=#{vlocation},
+          vnote=#{vnote}
+        where
+          pk_computer=#{pk_computer}
+    </update>
+    <!-- 删除计算机管理信息 -->
+    <delete id="deleteComputer">
+        update
+          fe_computer
+        set
+          dr =1
+        where
+        pk_computer in
+        <foreach collection="list" item="pk_computer" open="(" close=")" separator=",">
+            #{pk_computer}
+        </foreach>
+    </delete>
+    <!--通过编码查询计算机管理 -->
+    <select id="selectComputerByCode" resultType="ComputerVO">
+        select
+          pk_computer,code,name,brand,pk_psndoc,vlocation,pk_soft,vnote
+        from
+          fe_computer
+        where
+          code=#{code} and dr=0
+    </select>
+    <!--查询使用人数-->
+    <select id="selectUseCount" resultType="int">
+        select
+         count(DISTINCT fc.pk_psndoc)
+        from
+          fe_computer fc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fc.pk_psndoc
+        join fe_org_orgs foo on foo.pk_org = fbp.pk_org and foo.pk_org =#{pk_org}
+    </select>
+    <!--通过组织查询计算机数量-->
+    <select id="selectComputerCountByPk_org" resultType="int">
+        select
+        count(fc.pk_computer)
+        from
+        fe_computer fc
+        join fe_bd_psndoc fbp on fbp.pk_psndoc = fc.pk_psndoc
+        join fe_org_orgs foo on foo.pk_org = fbp.pk_org and foo.pk_org =#{pk_org}
+    </select>
+</mapper>

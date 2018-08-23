@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.qxgl.IPermissionMenuDao">
+	<!--添加角色权限关系 -->
+	<insert id="insertPowerMenu">
+		insert into
+			 fe_sm_permissionmenu
+			 (pk_permid_cfunid,pk_permid,cfunid)
+		values
+			(#{pk_permid_cfunid},#{pk_permid},#{cfunid})
+	</insert>
+	<!--通过角色主键查询角色权限关系 -->
+	<select id="selectPowerMenuByCondition" resultType="PermissionMenuVO">
+		select
+			*
+		from
+			fe_sm_permissionmenu
+		where
+			pk_permid = #{pk_permid}
+	</select>
+	<!--把dr置为1进行删除角色权限关系 -->
+	<update id="deletePowerMenu" parameterType="java.util.List">
+		update
+			fe_sm_permissionmenu
+		set
+			dr = 1
+		<where>
+			cfunid in
+			<foreach collection="list" item="pk_menu" open="(" close=")" separator=",">
+				#{pk_menu}
+			</foreach>
+			and pk_permid = #{pk_permid}
+		</where>
+	</update>
+	<!--修改表中已有权限职责dr字段 -->
+	<update id="updatePowerMenuDr">
+		update
+			fe_sm_permissionmenu
+		set
+			dr = 0
+		where
+			pk_permid = #{pk_permid} and cfunid = #{cfunid}
+	</update>
+</mapper>

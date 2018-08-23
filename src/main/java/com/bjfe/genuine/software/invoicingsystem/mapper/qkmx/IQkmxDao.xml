@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.qkmx.IQkmxDao">
+    <!--查询条件-->
+    <sql id="selectwhere">
+        <where>
+            <if test="pk_soft !=null">
+                and a.pk_soft=#{pk_soft}
+            </if>
+            <if test="pk_deptdoc !=null">
+                and a.pk_deptdoc=#{pk_deptdoc}
+            </if>
+            <if test="pk_computer !=null">
+                and a.pk_computer=#{pk_computer}
+            </if>
+
+        </where>
+    </sql>
+
+    <!--子表查询-->
+    <select id="selectQkmxBByID" resultType="QkmxBVO">
+        SELECT
+          a.pk_soft_detail_b,a.crowno,c.name as pk_deptdoc,d.name as pk_psndoc,e.code as computercode,f.code as softcode,f.name as pk_soft,a.permis,
+          fsst.name as pk_softtype,a.taudittime,e.brand as computerbrand,f.name as softname,f.version as softversion
+        FROM fe_soft_detail_b as a
+        JOIN fe_soft_detail as b on a.pk_soft_detail=b.pk_soft_detail and pk_org=#{pk_org}
+        JOIN fe_bd_dept as c on a.pk_deptdoc=c.pk_deptdoc
+        JOIN fe_bd_psndoc as d on a.pk_psndoc=d.pk_psndoc
+        JOIN fe_computer as e on a.pk_computer=e.pk_computer
+        JOIN fe_sm_softinfo as f on a.pk_soft=f.pk_soft
+        join fe_sm_softtype as fsst on a.pk_softtype = fsst.pk_softtype
+        <include refid="selectwhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+
+    <!--查询子表数量-->
+    <select id="selectQkmxBByCount" resultType="int">
+        select
+          count(pk_soft_detail_b)
+        from
+          fe_soft_detail_b a
+        JOIN fe_soft_detail as fsd on a.pk_soft_detail=fsd.pk_soft_detail and pk_org=#{pk_org}
+        <include refid="selectwhere"></include>
+    </select>
+
+    <!--查询软件使用情况明细主表的总数量-->
+    <select id="selectQkmxCount" resultType="int">
+        select count(pk_soft_detail)
+        from fe_soft_detail
+    </select>
+
+    <!--添加软件使用情况明细主表数据-->
+    <insert id="insertQkmxHByID">
+        insert into fe_soft_detail
+        (pk_soft_detail,creator,pk_org,telphone,creationtime)
+        VALUES
+        (#{pk_soft_detail},#{creator},#{pk_org},#{telphone},#{creationtime})
+    </insert>
+
+    <!--添加软件使用情况明细子表数据-->
+    <insert id="insertQkmxBByID" >
+        INSERT INTO fe_soft_detail_b
+        (pk_soft_detail_b,pk_soft_detail,crowno,pk_deptdoc,pk_psndoc,pk_computer,pk_soft,permis,pk_softtype,taudittime)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.pk_soft_detail_b},#{item.pk_soft_detail},#{item.crowno},#{item.pk_deptdoc},#{item.pk_psndoc},#{item.pk_computer},#{item.pk_soft},#{item.permis},#{item.pk_softtype},#{item.taudittime});
+        </foreach>
+    </insert>
+
+</mapper>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.qxgl.IPermissionDao">
+    <!-- 权限分页条件 -->
+    <sql id="selectWhere">
+        <where>
+            <if test="pk_org !=null and pk_org !=''">
+                and  fsp.pk_org = #{pk_org}
+            </if>
+            <if test="pk_dept !=null and pk_dept !=''">
+                and  fsp.pk_dept = #{pk_dept}
+            </if>
+            <if test="name !=null and name !=''">
+                and fsp.name like '%' #{name} '%'
+            </if>
+
+            <if test="code !=null and code !=''">
+                and fsp.code like '%' #{code} '%'
+            </if>
+            and fsp.dr = 0
+        </where>
+    </sql>
+    <!--添加权限 -->
+    <insert id="insertRightsMan">
+        insert into
+        fe_sm_permission
+        (pk_permid,code,name,memo,pk_org,creator,creationtime)
+        values
+        (#{pk_permid},#{code},#{name},#{memo},#{pk_org},#{creator},#{creationtime})
+    </insert>
+    <!--条件查询兼并分页显示 -->
+    <select id="selectRightsManList" resultType="RightsManVO">
+        select
+        fsp.pk_permid,fsp.code,fsp.name,fsp.memo,foo.name as pk_org,fbp.name as creator,fsp.creationtime,fsp.pk_org as org_pk
+        from
+        fe_sm_permission fsp
+        join fe_org_orgs foo on fsp.pk_org = foo.pk_org
+        join fe_bd_psndoc fbp on fsp.creator = fbp.pk_psndoc
+        <include refid="selectWhere"></include>
+        limit #{skipNumber},#{pageCount}
+    </select>
+    <!-- 查询权限总数量 -->
+    <select id="selectRightsManCount" resultType="int">
+        select
+        count(pk_permid)
+        from
+        fe_sm_permission fsp
+        <include refid="selectWhere"></include>
+    </select>
+    <!--修改权限 -->
+    <update id="updateRightsMan">
+        update
+        fe_sm_permission
+        set
+        name=#{name},
+        memo=#{memo},
+        pk_org=#{pk_org},
+        creationtime=#{creationtime}
+        where
+        pk_permid=#{pk_permid}
+    </update>
+    <!--删除权限 -->
+    <update id="deleteRightsMan">
+        update
+        fe_sm_permission
+        set
+        dr =1
+        <where>
+            pk_permid in
+            <foreach collection="array" item="pk_permid" open="(" close=")" separator=",">
+                #{pk_permid}
+            </foreach>
+        </where>
+    </update>
+    <!--查询所有角色权限信息是否分配 -->
+    <select id="editPowerNoRole" resultType="RightsManVO">
+        select
+		fsp.name,fsp.pk_permid,fsp.code,case
+							   when fsrp.pk_role is null then 'false'
+							   else 'true'
+							   end as 'checked'
+		from
+			fe_sm_permission fsp
+		left join
+			fe_sm_rolepermission fsrp
+		on
+			fsp.pk_permid = fsrp.pk_permid and fsrp.pk_role = #{pk_role} and fsrp.dr = 0
+		where
+			fsp.dr = 0
+    </select>
+    <!-- 通过角色查询关联的权限 -->
+    <select id="selectRightByRole" resultType="RightsManVO">
+        select
+          fsp.code,fsp.name
+        from
+          fe_sm_permission fsp
+        join
+          fe_sm_rolepermission fsrp
+        on
+          fsp.pk_permid = fsrp.pk_permid and fsrp.pk_role = #{pk_role} and fsrp.dr = 0
+        where
+         fsp.dr = 0
+    </select>
+    <!--通过编码和名称查询权限数量-->
+    <select id="selectPermissionCountBycodeAndname" resultType="int">
+        select
+          count(pk_permid)
+        from
+          fe_sm_permission
+        where
+          code = #{code} and name = #{name} and dr=0
+    </select>
+</mapper>

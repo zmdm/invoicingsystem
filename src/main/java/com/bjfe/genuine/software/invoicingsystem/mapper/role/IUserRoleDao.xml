@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bjfe.genuine.software.invoicingsystem.mapper.role.IUserRoleDao">
+	<!--添加用户角色关系 -->
+	<insert id="insertUserRole">
+		insert into
+			fe_sm_userrole
+			(pk_user_role,cuserid,pk_role)
+		values
+			(#{pk_user_role},#{cuserid},#{pk_role})
+	</insert>
+	<!-- 把dr置为1进行删除用户角色关系 -->
+	<update id="deleteUserRole" parameterType="java.util.List">
+		update
+			fe_sm_userrole
+		set
+			dr = 1
+		<where>
+			cuserid in
+			<foreach collection="list" item="cuserid" open="(" close=")" separator=",">
+				#{cuserid}
+			</foreach>
+			and pk_role = #{pk_role}
+		</where>
+	</update>
+	<!--通过角色主键查询角色用户关系 -->
+	<select id="selectUserRoleByConditon" resultType="UserRoleVO">
+		select
+			*
+		from
+			fe_sm_userrole
+		where
+			pk_role = #{pk_role}
+	</select>
+	<!--修改表中已有用户角色dr字段 -->
+	<update id="updateUserRoleDr">
+		update
+			fe_sm_userrole
+		set
+			dr = 0
+		where
+			cuserid = #{cuserid} and pk_role = #{pk_role}
+	</update>
+</mapper>
